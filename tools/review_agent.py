@@ -12,7 +12,12 @@ IGNORE_FILES = [
 IGNORE_PREFIXES = [
     "reviews/",
 ]
-
+SOURCE_EXTENSIONS = [
+".cpp",
+".h",
+".hpp",
+".c"
+]
 
 def get_staged_files():
     try:
@@ -28,6 +33,16 @@ def get_staged_files():
             if not line:
                 continue
 
+            valid_extension = False
+
+            for ext in SOURCE_EXTENSIONS:
+                if line.endswith(ext):
+                    valid_extension = True
+                    break
+
+            if not valid_extension:
+                continue
+
             skip = False
 
             if line in IGNORE_FILES:
@@ -36,6 +51,7 @@ def get_staged_files():
             for prefix in IGNORE_PREFIXES:
                 if line.startswith(prefix):
                     skip = True
+                    break
 
             if not skip:
                 files.append(line)
