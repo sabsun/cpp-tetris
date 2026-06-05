@@ -1,6 +1,4 @@
 #include "colors.h"
-
-const Color darkGre1y = {216, 31, 40, 255};
 const Color darkGrey = {26, 31, 40, 255};
 const Color green = {47, 230, 23, 255};
 const Color red = {232, 18, 18, 255};
