@@ -1,21 +1,13 @@
 import subprocess
 import sys
 
-print("Collecting staged diff...")
-
 diff = subprocess.check_output(
     ["git", "diff", "--cached"]
 )
 
-if not isinstance(diff, str):
-    diff = diff.decode("utf-8")
-
-if not diff.strip():
+if len(diff) == 0:
     print("No staged changes")
-    sys.exit(0)
-
-print("Diff size:", len(diff))
+    sys.exit(1)
 
 print("Review passed")
-
 sys.exit(0)
