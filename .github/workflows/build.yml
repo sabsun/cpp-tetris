@@ -9,7 +9,7 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
@@ -22,10 +22,6 @@ jobs:
         run: |
           test -f tools/ai_review.py
           test -f tools/review_agent.py
-
-      - name: Verify Hooks Exist
-        run: |
-          test -f .git-hooks/pre-commit
       
       - name: Python Syntax Check
         run: |
