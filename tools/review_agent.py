@@ -1,9 +1,19 @@
 #!/usr/bin/env python
 
+import json
 import os
+import re
 import subprocess
 import sys
 import time
+
+SECRET_PATTERNS = [
+    r"AKIA[0-9A-Z]{16}",
+    r"-----BEGIN PRIVATE KEY-----",
+    r"github_pat_",
+    r"ghp_[A-Za-z0-9]+",
+    r"Bearer\s+[A-Za-z0-9\-_\.]+",
+]
 
 IGNORE_FILES = [
     "tools/review_agent.py",
@@ -12,12 +22,14 @@ IGNORE_FILES = [
 IGNORE_PREFIXES = [
     "reviews/",
 ]
+
 SOURCE_EXTENSIONS = [
-".cpp",
-".h",
-".hpp",
-".c"
+    ".cpp",
+    ".c",
+    ".h",
+    ".hpp",
 ]
+
 
 def get_staged_files():
     try:
@@ -66,11 +78,27 @@ def get_staged_files():
 
 def get_staged_content(filename):
     try:
-        return subprocess.check_output(
+        content = subprocess.check_output(
             ["git", "show", ":" + filename]
         )
+
+        if not isinstance(content, str):
+            content = content.decode("utf-8", "ignore")
+
+        return content
+
     except Exception:
         return ""
+
+
+def check_secret_patterns(content):
+    matches = []
+
+    for pattern in SECRET_PATTERNS:
+        if re.search(pattern, content):
+            matches.append(pattern)
+
+    return matches
 
 
 def run_checks(files):
@@ -92,14 +120,12 @@ def run_checks(files):
                 "%s contains FIXME" % filename
             )
 
-        if "password =" in content:
-            errors.append(
-                "%s contains possible hardcoded password" % filename
-            )
+        secret_matches = check_secret_patterns(content)
 
-        if "secret =" in content:
+        for match in secret_matches:
             errors.append(
-                "%s contains possible hardcoded secret" % filename
+                "%s contains secret pattern: %s"
+                % (filename, match)
             )
 
     return errors
@@ -111,18 +137,40 @@ def write_report(errors):
 
     filename = "reviews/review_%d.md" % int(time.time())
 
-    with open(filename, "w") as f:
-        f.write("# Review Report\n\n")
+    f = open(filename, "w")
 
-        if errors:
-            f.write("Status: FAIL\n\n")
+    f.write("# Review Report\n\n")
 
-            for error in errors:
-                f.write("- %s\n" % error)
-        else:
-            f.write("Status: PASS\n")
+    if errors:
+        f.write("Status: FAIL\n\n")
+        
+        f.write("## Issues\n\n")
+
+        for error in errors:
+            f.write("- %s\n" % error)
+    else:
+        f.write("Status: PASS\n")
+
+    f.close()
 
     print("Review report written: %s" % filename)
+
+
+def run_ai_review():
+    try:
+        output = subprocess.check_output(
+            ["python", "tools/ai_review.py"]
+        )
+
+        return json.loads(output)
+
+    except Exception as e:
+        return {
+            "status": "FAIL",
+            "issues": [
+                "AI review execution failed: %s" % str(e)
+            ],
+        }
 
 
 def main():
@@ -135,7 +183,23 @@ def main():
     for filename in files:
         print(" - %s" % filename)
 
+    if len(files) == 0:
+        print("")
+        print("No source files staged")
+        sys.exit(0)
+
     errors = run_checks(files)
+
+    print("")
+    print("Running AI review...")
+
+    ai_result = run_ai_review()
+
+    if ai_result.get("status") == "FAIL":
+        for issue in ai_result.get("issues", []):
+            errors.append(
+                "AI Review: %s" % issue
+            )
 
     write_report(errors)
 
