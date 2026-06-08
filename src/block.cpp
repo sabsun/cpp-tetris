@@ -1,6 +1,6 @@
 #include "block.h"
-// char* p = NULL;
-// *p = 'a';
+char* p = NULL;
+*p = 'a';
 Block::Block()
 {
     cellSize = 30;
