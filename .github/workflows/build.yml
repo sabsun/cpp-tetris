@@ -1,29 +1,23 @@
-name: CI
+name: Build
 
 on:
   push:
-    branches:
-      - main
-
   pull_request:
 
 jobs:
-  validate:
+  compile:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Verify Python
-        run: python3 --version
-
-      - name: Verify AI Review Script Exists
+      - name: Build
         run: |
-          test -f tools/ai_review.py
-          test -f tools/review_agent.py
-      
-      - name: Python Syntax Check
-        run: |
-          python3 -m py_compile tools/ai_review.py
-          python3 -m py_compile tools/review_agent.py
+          g++ src/*.cpp -o game \
+            -lraylib \
+            -lGL \
+            -lm \
+            -lpthread \
+            -ldl \
+            -lrt \
+            -lX11
