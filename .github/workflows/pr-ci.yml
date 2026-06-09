@@ -16,7 +16,6 @@ on:
       - develop
 
 jobs:
-
   ai-review:
     if: startsWith(github.head_ref, 'test-')
 
@@ -27,10 +26,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install Python Dependencies
-        run: |
-          python3 -m pip install --user requests
 
       - name: Verify Ollama Connectivity
         run: |
@@ -58,10 +53,7 @@ jobs:
               return;
             }
 
-            const body = fs.readFileSync(
-              'review.md',
-              'utf8'
-            );
+            const body = fs.readFileSync('review.md', 'utf8');
 
             const comments =
               await github.rest.issues.listComments({
@@ -95,10 +87,62 @@ jobs:
               });
             }
 
-  build:
+  semgrep:
     if: startsWith(github.head_ref, 'test-')
 
     needs: ai-review
+
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add User Bin To PATH
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify Semgrep
+        run: |
+          which semgrep
+          semgrep --version
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config=auto \
+            src/
+
+  clang-tidy:
+    if: startsWith(github.head_ref, 'test-')
+
+    needs: semgrep
+
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add User Bin To PATH
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify Clang-Tidy
+        run: |
+          which clang-tidy
+          clang-tidy --version
+
+      - name: Run Clang-Tidy
+        run: |
+          find src \
+            -name "*.cpp" \
+            | xargs clang-tidy
+
+  build:
+    if: startsWith(github.head_ref, 'test-')
+
+    needs: clang-tidy
 
     runs-on: self-hosted
 
