@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    if: startsWith(github.head_ref, 'feature-')
+    if: startsWith(github.head_ref, 'test-')
 
     runs-on: self-hosted
 
@@ -41,7 +41,7 @@ jobs:
           path: game
 
   ai-review:
-    if: startsWith(github.head_ref, 'feature-')
+    if: startsWith(github.head_ref, 'test-')
 
     runs-on: self-hosted
 
