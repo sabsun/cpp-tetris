@@ -121,23 +121,17 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Add User Bin To PATH
+      - name: Configure CMake
         run: |
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Verify Clang-Tidy
-        run: |
-          which clang-tidy
-          clang-tidy --version
+          cmake -S . -B build \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Run Clang-Tidy
         run: |
-          find src \
-            -name "*.cpp" \
-            | xargs clang-tidy
+          find src -name "*.cpp" \
+            | xargs clang-tidy -p build
 
   build:
     if: always() && startsWith(github.head_ref, 'test-')
@@ -147,33 +141,23 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Verify Raylib Installation
         run: |
-          echo "Checking raylib..."
+          find /usr/local/include -name raylib.h
+          find /usr/local/lib -name "libraylib*"
 
-          find /usr/local/include \
-            -name raylib.h
-
-          find /usr/local/lib \
-            -name "libraylib*"
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build
 
       - name: Build Game
         run: |
-          g++ src/*.cpp \
-            -o game \
-            -lraylib \
-            -lGL \
-            -lm \
-            -lpthread \
-            -ldl \
-            -lrt \
-            -lX11
+          cmake --build build --parallel
 
       - name: Upload Binary
         uses: actions/upload-artifact@v4
         with:
           name: game-binary
-          path: game
+          path: build/game
