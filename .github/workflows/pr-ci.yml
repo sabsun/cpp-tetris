@@ -1,0 +1,73 @@
+name: PR CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    if: startsWith(github.head_ref, 'feature-')
+
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Raylib
+        run: |
+          echo "Checking raylib installation..."
+          find /usr/local/include -name raylib.h
+          find /usr/local/lib -name "libraylib*"
+
+      - name: Build Game
+        run: |
+          g++ src/*.cpp -o game \
+            -lraylib \
+            -lGL \
+            -lm \
+            -lpthread \
+            -ldl \
+            -lrt \
+            -lX11
+
+      - name: Upload Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-binary
+          path: game
+
+  ai-review:
+    if: startsWith(github.head_ref, 'feature-')
+
+    runs-on: self-hosted
+
+    needs: build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Ollama Connectivity
+        run: |
+          curl http://host.docker.internal:11434/api/tags
+      - name: Debug network
+        run: |
+          env | grep -i proxy || true
+
+          echo "DNS lookup"
+          getent hosts host.docker.internal || true
+
+          echo "Curl test"
+          curl -v http://host.docker.internal:11434/api/tags || true
+
+      - name: Run AI Review
+        env:
+          OLLAMA_HOST: http://host.docker.internal:11434
+          OLLAMA_MODEL: qwen2.5-coder:7b
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 tools/review_agent.py
