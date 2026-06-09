@@ -174,11 +174,9 @@ if __name__ == "__main__":
     if all_reviews:
         report = "# AI Code Review\n\n" + "\n---\n".join(all_reviews)
 
-        if not files:
-            Path("review.md").write_text(
-                "# AI Code Review\n\nNo source files changed.",
-                encoding="utf-8",
-            )
-            return
+        Path("review.md").write_text(
+            report,
+            encoding="utf-8",
+        )
 
         print("Review written to review.md")
