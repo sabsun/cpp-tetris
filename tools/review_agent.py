@@ -117,6 +117,15 @@ def main():
             3. Performance issues
             4. Code quality improvements
             5. Overall summary
+            
+            IMPORTANT:
+
+            If an issue is reported, you MUST provide a concrete fix.
+            Every reported issue MUST include a code snippet showing the corrected code.
+            If no issue exists for a section, explicitly state "No issues found".
+            Prefer showing exact replacement code.
+            Keep explanations concise.
+            Based on the review suggest a score out-of 10.
 
             File: {file}
 
