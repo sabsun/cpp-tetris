@@ -3,7 +3,7 @@ import subprocess
 import requests
 
 OLLAMA_URL = os.getenv(
-    "OLLAMA_URL",
+    "OLLAMA_HOST",
     "http://localhost:11434",
 )
 
@@ -54,6 +54,8 @@ def ask_ollama(prompt):
 
 
 def main():
+    print("OLLAMA_URL =", OLLAMA_URL)
+    print("MODEL =", MODEL)
     print("Checking Ollama...")
 
     tags = requests.get(

@@ -23,7 +23,7 @@ jobs:
       - name: Run AI Review
         env:
           OLLAMA_HOST: http://host.docker.internal:11434
-          OLLAMA_MODEL: qwen2.5-coder:7b
+          OLLAMA_MODEL: qwen3-coder:480b-cloud
         run: |
           python3 tools/review_agent.py
 
