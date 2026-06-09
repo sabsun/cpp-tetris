@@ -16,6 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Python dependencies
+        run: |
+          pip3 install requests
+
       - name: Run AI Review
         env:
           OLLAMA_HOST: http://host.docker.internal:11434
