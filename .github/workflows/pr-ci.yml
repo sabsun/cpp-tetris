@@ -123,6 +123,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Add User Bin To PATH
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify Clang-Tidy
+        run: |
+          which clang-tidy
+          clang-tidy --version
+
       - name: Configure CMake
         run: |
           cmake -S . -B build \
