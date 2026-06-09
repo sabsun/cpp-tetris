@@ -91,6 +91,7 @@ jobs:
     if: startsWith(github.head_ref, 'test-')
 
     needs: ai-review
+    if: always()
 
     runs-on: self-hosted
 
@@ -117,6 +118,7 @@ jobs:
     if: startsWith(github.head_ref, 'test-')
 
     needs: semgrep
+    if: always()
 
     runs-on: self-hosted
 
@@ -143,6 +145,7 @@ jobs:
     if: startsWith(github.head_ref, 'test-')
 
     needs: clang-tidy
+    if: always()
 
     runs-on: self-hosted
 
