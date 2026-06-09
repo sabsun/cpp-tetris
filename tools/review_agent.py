@@ -1,6 +1,9 @@
 import os
 import subprocess
 import requests
+from pathlib import Path
+
+all_reviews = []
 
 OLLAMA_URL = os.getenv(
     "OLLAMA_HOST",
@@ -26,13 +29,9 @@ def get_changed_files():
 
     try:
         if base_ref:
-            files = run(
-                f"git diff --name-only origin/{base_ref}...HEAD"
-            )
+            files = run(f"git diff --name-only origin/{base_ref}...HEAD")
         else:
-            files = run(
-                "git diff --name-only HEAD~1 HEAD"
-            )
+            files = run("git diff --name-only HEAD~1 HEAD")
 
         return [f for f in files.splitlines() if f]
 
@@ -83,6 +82,10 @@ def main():
 
     if not files:
         print("No changed files found")
+
+        Path("review.md").write_text(
+            "# AI Code Review\n\nNo source files changed.", encoding="utf-8"
+        )
         return
 
     print(f"Files under review: {len(files)}")
@@ -105,23 +108,23 @@ def main():
             continue
 
         prompt = f"""
-You are a senior software engineer.
+            You are a senior software engineer.
 
-Review this file and provide:
+            Review this file and provide:
 
-1. Bugs
-2. Security issues
-3. Performance issues
-4. Code quality improvements
-5. Overall summary
+            1. Bugs
+            2. Security issues
+            3. Performance issues
+            4. Code quality improvements
+            5. Overall summary
 
-File: {file}
+            File: {file}
 
-Code:
+            Code:
 
-```text
-{content[:15000]}
-"""
+            ```text
+            {content[:15000]}
+        """
 
         try:
             review = ask_ollama(prompt)
@@ -130,6 +133,34 @@ Code:
             print(file)
             print("=" * 80)
             print(review)
+
+            all_reviews.append(f"## {file}\n\n{review}\n")
+
+            critical_keywords = [
+                "critical bug",
+                "segmentation fault",
+                "null pointer",
+                "memory leak",
+                "security vulnerability",
+                "undefined behavior",
+                "crash",
+            ]
+
+            review_lower = review.lower()
+
+            if any(keyword in review_lower for keyword in critical_keywords):
+                print("AI REVIEW FAILED")
+
+                all_reviews.append(
+                    "\n\n❌ Critical issues detected. Build blocked.\n"
+                )
+
+                report = "# AI Code Review\n\n" + "\n---\n".join(all_reviews)
+
+                Path("review.md").write_text(report, encoding="utf-8")
+
+                raise SystemExit(1)
+
             print()
 
         except Exception as e:
@@ -139,3 +170,15 @@ Code:
 
 if __name__ == "__main__":
     main()
+
+    if all_reviews:
+        report = "# AI Code Review\n\n" + "\n---\n".join(all_reviews)
+
+        if not files:
+            Path("review.md").write_text(
+                "# AI Code Review\n\nNo source files changed.",
+                encoding="utf-8",
+            )
+            return
+
+        print("Review written to review.md")
