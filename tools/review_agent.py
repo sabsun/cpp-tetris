@@ -22,10 +22,22 @@ def run(cmd):
 
 
 def get_changed_files():
+    base_ref = os.getenv("BASE_REF")
+
     try:
-        files = run("git diff --name-only HEAD~1 HEAD")
+        if base_ref:
+            files = run(
+                f"git diff --name-only origin/{base_ref}...HEAD"
+            )
+        else:
+            files = run(
+                "git diff --name-only HEAD~1 HEAD"
+            )
+
         return [f for f in files.splitlines() if f]
-    except Exception:
+
+    except Exception as e:
+        print("Failed to get changed files:", e)
         return []
 
 

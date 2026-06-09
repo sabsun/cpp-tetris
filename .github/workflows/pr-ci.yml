@@ -15,6 +15,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ github.base_ref }}
 
       - name: Install Python dependencies
         run: |
@@ -24,6 +30,7 @@ jobs:
         env:
           OLLAMA_HOST: http://host.docker.internal:11434
           OLLAMA_MODEL: qwen3-coder:480b-cloud
+          BASE_REF: ${{ github.base_ref }}
         run: |
           python3 tools/review_agent.py
 
