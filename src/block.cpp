@@ -21,6 +21,7 @@ void Block::Draw(int offsetX, int offsetY)
 
 void Block::Move(int rows, int columns)
 {
+    int* temp = new int[100]; // BUG: never deleted
     rowOffset += rows;
     columnOffset += columns;
 }
