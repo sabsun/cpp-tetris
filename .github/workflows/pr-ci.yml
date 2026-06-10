@@ -1,0 +1,200 @@
+name: PR CI
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+      - develop
+
+jobs:
+  ai-review:
+    if: startsWith(github.head_ref, 'test-')
+
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Ollama Connectivity
+        run: |
+          echo "Testing Ollama..."
+          curl http://host.docker.internal:11434/api/tags
+
+      - name: Run AI Review
+        env:
+          OLLAMA_HOST: http://host.docker.internal:11434
+          OLLAMA_MODEL: qwen3-coder:480b-cloud
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          python3 tools/review_agent.py
+
+      - name: Post or Update AI Review Comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            if (!fs.existsSync('review.md')) {
+              console.log('review.md not found');
+              return;
+            }
+
+            const body = fs.readFileSync('review.md', 'utf8');
+
+            const comments =
+              await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number:
+                  context.payload.pull_request.number
+              });
+
+            const existing =
+              comments.data.find(
+                c =>
+                  c.user.type === 'Bot' &&
+                  c.body.includes('# AI Code Review')
+              );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number:
+                  context.payload.pull_request.number,
+                body
+              });
+            }
+
+  semgrep:
+    if: always() && startsWith(github.head_ref, 'test-')
+
+    needs: ai-review
+
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add User Bin To PATH
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify Semgrep
+        run: |
+          which semgrep
+          semgrep --version
+
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config=auto \
+            src/
+
+  clang-tidy:
+    if: always() && startsWith(github.head_ref, 'test-')
+
+    needs: semgrep
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add User Bin To PATH
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify Clang-Tidy
+        run: |
+          which clang-tidy
+          clang-tidy --version
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -DENABLE_TESTS=OFF \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Run Clang-Tidy
+        run: |
+          find src -name "*.cpp" \
+            | xargs clang-tidy -p build
+
+  build:
+    if: always() && startsWith(github.head_ref, 'test-')
+
+    needs: clang-tidy
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Raylib Installation
+        run: |
+          find /usr/local/include -name raylib.h
+          find /usr/local/lib -name "libraylib*"
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -DENABLE_TESTS=OFF
+
+      - name: Build Game
+        run: |
+          cmake --build build --parallel
+
+      - name: Upload Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-binary
+          path: build/game
+  unit-tests:
+    if: always() && startsWith(github.head_ref, 'test-')
+
+    needs: build
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DENABLE_TESTS=ON \
+            -DCMAKE_PREFIX_PATH=$HOME/local
+
+      - name: Build Tests
+        run: |
+          cmake --build build --parallel
+
+      - name: Run Tests
+        run: |
+          ctest \
+            --test-dir build \
+            --output-on-failure \
+            --verbose

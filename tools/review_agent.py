@@ -1,9 +1,12 @@
 import os
 import subprocess
 import requests
+from pathlib import Path
+
+all_reviews = []
 
 OLLAMA_URL = os.getenv(
-    "OLLAMA_URL",
+    "OLLAMA_HOST",
     "http://localhost:11434",
 )
 
@@ -22,10 +25,18 @@ def run(cmd):
 
 
 def get_changed_files():
+    base_ref = os.getenv("BASE_REF")
+
     try:
-        files = run("git diff --name-only HEAD~1 HEAD")
+        if base_ref:
+            files = run(f"git diff --name-only origin/{base_ref}...HEAD")
+        else:
+            files = run("git diff --name-only HEAD~1 HEAD")
+
         return [f for f in files.splitlines() if f]
-    except Exception:
+
+    except Exception as e:
+        print("Failed to get changed files:", e)
         return []
 
 
@@ -54,6 +65,8 @@ def ask_ollama(prompt):
 
 
 def main():
+    print("OLLAMA_URL =", OLLAMA_URL)
+    print("MODEL =", MODEL)
     print("Checking Ollama...")
 
     tags = requests.get(
@@ -69,6 +82,10 @@ def main():
 
     if not files:
         print("No changed files found")
+
+        Path("review.md").write_text(
+            "# AI Code Review\n\nNo source files changed.", encoding="utf-8"
+        )
         return
 
     print(f"Files under review: {len(files)}")
@@ -91,23 +108,32 @@ def main():
             continue
 
         prompt = f"""
-You are a senior software engineer.
+            You are a senior software engineer.
 
-Review this file and provide:
+            Review this file and provide:
 
-1. Bugs
-2. Security issues
-3. Performance issues
-4. Code quality improvements
-5. Overall summary
+            1. Bugs
+            2. Security issues
+            3. Performance issues
+            4. Code quality improvements
+            5. Overall summary
+            
+            IMPORTANT:
 
-File: {file}
+            If an issue is reported, you MUST provide a concrete fix with the issue part aswell.
+            Every reported issue MUST include a code snippet showing the corrected code.
+            If no issue exists for a section, explicitly state "No issues found".
+            Prefer showing exact replacement code.
+            Keep explanations concise.
+            Based on the review suggest a score out-of 10.
 
-Code:
+            File: {file}
 
-```text
-{content[:15000]}
-"""
+            Code:
+
+            ```text
+            {content[:15000]}
+        """
 
         try:
             review = ask_ollama(prompt)
@@ -116,6 +142,34 @@ Code:
             print(file)
             print("=" * 80)
             print(review)
+
+            all_reviews.append(f"## {file}\n\n{review}\n")
+
+            critical_keywords = [
+                "critical bug",
+                "segmentation fault",
+                "null pointer",
+                "memory leak",
+                "security vulnerability",
+                "undefined behavior",
+                "crash",
+            ]
+
+            review_lower = review.lower()
+
+            if any(keyword in review_lower for keyword in critical_keywords):
+                print("AI REVIEW FAILED")
+
+                all_reviews.append(
+                    "\n\n❌ Critical issues detected. Build blocked.\n"
+                )
+
+                report = "# AI Code Review\n\n" + "\n---\n".join(all_reviews)
+
+                Path("review.md").write_text(report, encoding="utf-8")
+
+                raise SystemExit(1)
+
             print()
 
         except Exception as e:
@@ -125,3 +179,13 @@ Code:
 
 if __name__ == "__main__":
     main()
+
+    if all_reviews:
+        report = "# AI Code Review\n\n" + "\n---\n".join(all_reviews)
+
+        Path("review.md").write_text(
+            report,
+            encoding="utf-8",
+        )
+
+        print("Review written to review.md")

@@ -1,6 +1,6 @@
 #include "block.h"
-char* p = NULL;
-*p = 'a';
+// char* p = NULL;
+// *p = 'a';
 Block::Block()
 {
     cellSize = 30;
@@ -21,6 +21,7 @@ void Block::Draw(int offsetX, int offsetY)
 
 void Block::Move(int rows, int columns)
 {
+    int* temp = new int[100]; // BUG: never deleted
     rowOffset += rows;
     columnOffset += columns;
 }
