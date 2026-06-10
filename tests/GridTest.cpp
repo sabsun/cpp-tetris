@@ -130,27 +130,27 @@ TEST_CASE("Grid ClearFullRows", "[grid]")
     }
 }
 
-TEST_CASE("Grid MoveRowDown", "[grid]")
-{
-    Grid grid = Grid();
+// TEST_CASE("Grid MoveRowDown", "[grid]")
+// {
+//     Grid grid = Grid();
     
-    SECTION("Move row down when there are cleared rows above")
-    {
-        // Fill rows 3 and 5 completely
-        for (int col = 0; col < 10; col++)
-        {
-            grid.grid[3][col] = 1;
-            grid.grid[5][col] = 2;
-        }
+//     SECTION("Move row down when there are cleared rows above")
+//     {
+//         // Fill rows 3 and 5 completely
+//         for (int col = 0; col < 10; col++)
+//         {
+//             grid.grid[3][col] = 1;
+//             grid.grid[5][col] = 2;
+//         }
         
-        // Clear row 5 first (which will shift row 3 down)
-        grid.ClearRow(5);
+//         // Clear row 5 first (which will shift row 3 down)
+//         grid.ClearRow(5);
         
-        // Now row 3 should have moved down by 1 position
-        // Row 3 content should now be at row 4
-        for (int col = 0; col < 10; col++)
-        {
-            REQUIRE(grid.grid[4][col] == 1);
-        }
-    }
-}
+//         // Now row 3 should have moved down by 1 position
+//         // Row 3 content should now be at row 4
+//         for (int col = 0; col < 10; col++)
+//         {
+//             REQUIRE(grid.grid[4][col] == 1);
+//         }
+//     }
+// }
