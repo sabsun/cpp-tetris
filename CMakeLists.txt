@@ -20,3 +20,36 @@ target_link_libraries(game
     rt
     X11
 )
+
+# Add test executable if Catch2 is available
+option(ENABLE_TESTS "Enable tests" ON)
+
+if(ENABLE_TESTS)
+
+    enable_testing()
+
+    include(FetchContent)
+
+    FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.8.1
+    )
+
+    FetchContent_MakeAvailable(Catch2)
+
+    include(CTest)
+    include(Catch)
+    
+    # Test source files
+    set(TEST_SOURCES
+        tests/GridTest.cpp
+        src/grid.cpp
+        src/position.cpp
+        src/colors.cpp
+    )
+    
+    add_executable(GridTests ${TEST_SOURCES})
+    target_link_libraries(GridTests PRIVATE Catch2::Catch2WithMain raylib)
+    catch_discover_tests(GridTests)
+endif()

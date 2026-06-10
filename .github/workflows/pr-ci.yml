@@ -170,3 +170,27 @@ jobs:
         with:
           name: game-binary
           path: build/game
+  unit-tests:
+    if: always() && startsWith(github.head_ref, 'test-')
+
+    needs: build
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: |
+          cmake -S . -B build
+
+      - name: Build Tests
+        run: |
+          cmake --build build --parallel
+
+      - name: Run Tests
+        run: |
+          ctest \
+            --test-dir build \
+            --output-on-failure \
+            --verbose
