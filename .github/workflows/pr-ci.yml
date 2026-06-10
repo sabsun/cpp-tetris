@@ -135,6 +135,7 @@ jobs:
       - name: Configure CMake
         run: |
           cmake -S . -B build \
+            -DENABLE_TESTS=OFF \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Run Clang-Tidy
@@ -159,7 +160,8 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build
+          cmake -S . -B build \
+            -DENABLE_TESTS=OFF
 
       - name: Build Game
         run: |
@@ -182,7 +184,9 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S . -B build
+          cmake -S . -B build \
+            -DENABLE_TESTS=ON \
+            -DCMAKE_PREFIX_PATH=$HOME/local
 
       - name: Build Tests
         run: |

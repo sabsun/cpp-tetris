@@ -1,4 +1,4 @@
-#include "grid.h"
+#include "../src/grid.h"
 #include <iostream>
 #include <cassert>
 

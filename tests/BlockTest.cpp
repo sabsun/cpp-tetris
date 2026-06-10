@@ -1,5 +1,5 @@
-#include "block.h"
-#include "colors.h"
+#include "../src/block.h"
+#include "../src/colors.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("Block Initialization", "[block]")
