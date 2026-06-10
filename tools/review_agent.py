@@ -120,7 +120,7 @@ def main():
             
             IMPORTANT:
 
-            If an issue is reported, you MUST provide a concrete fix.
+            If an issue is reported, you MUST provide a concrete fix with the issue part aswell.
             Every reported issue MUST include a code snippet showing the corrected code.
             If no issue exists for a section, explicitly state "No issues found".
             Prefer showing exact replacement code.
